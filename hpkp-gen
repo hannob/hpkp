@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# HTTP Public Key Pinning header pin generator
+# by Hanno Böck, https://hboeck.de
+# License: CC0 (public domain)
+#
+# https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+
+if [ "$1" == "" ]; then
+	echo "HKP header generator according to"
+	echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
+	echo ""
+	echo "Usage: $0 [files]"
+	echo ""
+	echo "[files] should contain at least 2 files and can be of type"
+	echo ".crt (certificate), .csr (certificate request) or"
+	echo ".key (private key)"
+	exit 1
+fi
+
+head="Public-Key-Pins: max-age=31536000; "
+
+c=0
+for f in "$@"; do
+	if [ "${1: -4}" == ".crt" ]; then
+		pkey=`openssl x509 -pubkey -noout -in $1`
+	elif [ "${1: -4}" == ".csr" ]; then
+		pkey=`openssl req -pubkey -noout -in $1`
+	elif [ "${1: -4}" == ".key" ]; then
+		pkey=`openssl pkey -in $1 -pubout`
+	else
+		echo "$f is not a valid file format"
+		exit -1
+	fi
+	let c+=1
+	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|sha256sum |xxd -r -p|base64`
+	head="${head}pin-sha256=\"$phash\";"
+done
+
+[ $c -eq 1 ] && echo "Warning: HKP requires at least 2 keys" >&2
+echo $head
+
