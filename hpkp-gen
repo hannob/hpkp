@@ -1,42 +1,64 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # HTTP Public Key Pinning header pin generator
-# by Hanno Böck, https://hboeck.de
-# License: CC0 (public domain)
 #
-# https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# by Hanno Böck, https://hboeck.de
+# refined by Aaron Zauner <azet@azet.org>
+#
+# License: CC0 (public domain)
 
-if [ "$1" == "" ]; then
-	echo "HKP header generator according to"
-	echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
-	echo ""
-	echo "Usage: $0 [files]"
-	echo ""
-	echo "[files] should contain at least 2 files and can be of type"
-	echo ".crt (certificate), .csr (certificate request) or"
-	echo ".key (private key)"
-	exit 1
-fi
+function usage() {
+  echo "HPKP header generator according to latest IETF draft:"
+  echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
+  echo
+  echo "Usage: $0 -m [max-age] -f [file] -f [file] ..."
+  echo
+  echo "  -m: optionally changes the default max-age in seconds for PKP validity"
+  echo "  -f: must contain one file of the following type;"
+  echo "      .crt (certificate), .csr (certificate request) or .key (private key)"
+  echo "      /at least two of these must be supplied!/"
+  echo ; exit 1
+}
 
-head="Public-Key-Pins: max-age=31536000; "
+function parse_file() {
+  local pkey
 
-c=0
-for f in "$@"; do
-	if [ "${1: -4}" == ".crt" ]; then
-		pkey=`openssl x509 -pubkey -noout -in $1`
-	elif [ "${1: -4}" == ".csr" ]; then
-		pkey=`openssl req -pubkey -noout -in $1`
-	elif [ "${1: -4}" == ".key" ]; then
-		pkey=`openssl pkey -in $1 -pubout`
-	else
-		echo "$f is not a valid file format"
-		exit -1
-	fi
-	let c+=1
-	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|sha256sum |xxd -r -p|base64`
-	head="${head}pin-sha256=\"$phash\";"
+  case $1 in
+  *.crt) pkey=$(openssl x509 -pubkey -noout -in ${1})        ;;
+  *.csr) pkey=$(openssl req -pubkey -noout -in ${1})         ;;
+  *.key) pkey=$(openssl pkey -in ${1} -pubout)               ;;
+  *) echo -e "\n${1} is not a valid file format!\n" && usage ;;
+  esac
+
+  phash=$(echo -e "${pkey}\n" \
+           | grep -v PUBLIC   \
+           | base64 -d        \
+           | sha256sum        \
+           | xxd -r -p        \
+           | base64           )
+}
+
+# main
+[[ $# < 3 ]] && usage
+
+while getopts "m:f:" options; do
+  case ${options} in
+  m) head="Public-Key-Pins: max-age=${OPTARG}; " ;;
+  f)
+    for k in ${OPTARG}; do
+      parse_file "${k}"
+      ((c++))
+    done
+    pin="pin-sha256=\"${phash}\";"
+  ;;
+  *)
+    # default PKP max-age
+    head="Public-Key-Pins: max-age=31536000; "
+  ;;
+  esac
 done
 
-[ $c -eq 1 ] && echo "Warning: HKP requires at least 2 keys" >&2
-echo $head
+[[ ! ${c+defined} || ${c} -lt 2 ]] && usage
+
+echo "${head}${pin}"
 
