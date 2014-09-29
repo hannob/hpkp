@@ -23,6 +23,11 @@ function usage() {
 function parse_file() {
   local pkey
 
+  [[ -f ${1} ]] || {
+    echo -e "\n${1} no such file!\n"
+    usage
+  }
+
   case $1 in
   *.crt) pkey=$(openssl x509 -pubkey -noout -in ${1})        ;;
   *.csr) pkey=$(openssl req -pubkey -noout -in ${1})         ;;
