@@ -18,7 +18,7 @@ if [[ "$1" == "" ]]; then
 	exit 1
 fi
 
-head="Public-Key-Pins: max-age=31536000; "
+head="Public-Key-Pins: max-age=5184000; "
 
 c=0
 for f in "$@"; do
