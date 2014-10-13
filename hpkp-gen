@@ -6,7 +6,7 @@
 #
 # https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
 
-if [ "$1" == "" ]; then
+if [[ "$1" == "" ]]; then
 	echo "HKP header generator according to"
 	echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
 	echo ""
