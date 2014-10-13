@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # HTTP Public Key Pinning header pin generator
 # by Hanno Böck, https://hboeck.de
@@ -6,7 +6,7 @@
 #
 # https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
 
-if [[ "$1" == "" ]]; then
+if [ "$1" = "" ]; then
 	echo "HKP header generator according to"
 	echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
 	echo ""
@@ -22,11 +22,11 @@ head="Public-Key-Pins: max-age=5184000; "
 
 c=0
 for f in "$@"; do
-	if [ "${f: -4}" == ".crt" ]; then
+	if [ "${f: -4}" = ".crt" ]; then
 		pkey=`openssl x509 -pubkey -noout -in $f`
-	elif [ "${f: -4}" == ".csr" ]; then
+	elif [ "${f: -4}" = ".csr" ]; then
 		pkey=`openssl req -pubkey -noout -in $f`
-	elif [ "${f: -4}" == ".key" ]; then
+	elif [ "${f: -4}" = ".key" ]; then
 		pkey=`openssl pkey -in $f -pubout`
 	else
 		echo "$f is not a valid file format"
