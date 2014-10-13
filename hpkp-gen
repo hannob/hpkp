@@ -22,12 +22,12 @@ head="Public-Key-Pins: max-age=31536000; "
 
 c=0
 for f in "$@"; do
-	if [ "${1: -4}" == ".crt" ]; then
-		pkey=`openssl x509 -pubkey -noout -in $1`
-	elif [ "${1: -4}" == ".csr" ]; then
-		pkey=`openssl req -pubkey -noout -in $1`
-	elif [ "${1: -4}" == ".key" ]; then
-		pkey=`openssl pkey -in $1 -pubout`
+	if [ "${f: -4}" == ".crt" ]; then
+		pkey=`openssl x509 -pubkey -noout -in $f`
+	elif [ "${f: -4}" == ".csr" ]; then
+		pkey=`openssl req -pubkey -noout -in $f`
+	elif [ "${f: -4}" == ".key" ]; then
+		pkey=`openssl pkey -in $f -pubout`
 	else
 		echo "$f is not a valid file format"
 		exit -1
