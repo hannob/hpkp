@@ -1,42 +1,178 @@
-#!/bin/bash
+#!/bin/sh
+
+# ------------------------------------------------------------------------------
+# hpkp-gen - HTTP Public Key Pinning header pin generator.
 #
-# HTTP Public Key Pinning header pin generator
-# by Hanno Böck, https://hboeck.de
-# License: CC0 (public domain)
+# Written in 2014 by Hanno Böck <https://hboeck.de/>
 #
-# https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty. 
+#
+# You should have received a copy of the CC0 Public Domain Dedication along with
+# this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+# ------------------------------------------------------------------------------
 
-if [ "$1" = "" ]; then
-	echo "HKP header generator according to"
-	echo "http://tools.ietf.org/html/draft-ietf-websec-key-pinning-20"
-	echo ""
-	echo "Usage: $0 [files]"
-	echo ""
-	echo "[files] should contain at least 2 files and can be of type"
-	echo ".crt (certificate), .csr (certificate request) or"
-	echo ".key (private key)"
-	exit 1
-fi
+# ------------------------------------------------------------------------------
+# HTTP Public Key Pinning header pin generator.
+#
+# AUTHOR:     Hanno Böck <https://hboeck.de/>
+# AUTHOR:     Richard Fussenegger <richard@fussenegger.info>
+# COPYRIGHT:  Copyright (c) 2014 Hanno Böck
+# LICENSE:    http://creativecommons.org/publicdomain/zero/1.0/
+# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# ------------------------------------------------------------------------------
 
-head="Public-Key-Pins: max-age=5184000; "
 
-c=0
-for f in "$@"; do
-	if [ "${f: -4}" = ".crt" ]; then
-		pkey=`openssl x509 -pubkey -noout -in $f`
-	elif [ "${f: -4}" = ".csr" ]; then
-		pkey=`openssl req -pubkey -noout -in $f`
-	elif [ "${f: -4}" = ".key" ]; then
-		pkey=`openssl pkey -in $f -pubout`
-	else
-		echo "$f is not a valid file format"
-		exit -1
-	fi
-	let c+=1
-	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|sha256sum |xxd -r -p|base64`
-	head="${head}pin-sha256=\"$phash\";"
+# ------------------------------------------------------------------------------
+#                                                                      Variables
+# ------------------------------------------------------------------------------
+
+
+# The maximum age for the pinned key in seconds.
+#
+# DEFAULT: 5184000 seconds (60 days)
+MAX_AGE=5184000
+
+# Whether to include the 'includeSubdomains' directive or not.
+SUBDOMAINS=false
+
+
+# ------------------------------------------------------------------------------
+#                                                                      Functions
+# ------------------------------------------------------------------------------
+
+
+# Print usage information.
+#
+# RETURN:
+#  0 - Printing successful.
+#  1 - Printing failed.
+usage()
+{
+  cat << EOT
+Usage: ${0##*/} [OPTION]... [FILES]...
+HKP header generator according to Public Key Pinning Extension for HTTP.
+
+[FILES] should contain at least two files and can be of type .crt (certificate),
+.csr (certificate request), or .key (private key).
+
+  -m    Specify the maximum age for the pinned key in seconds (default is
+        5184000 or 60 days which is the recommended value).
+  -h|?  Print this text and exit.
+
+Usage example: \`sh hpkp-gen -m5184000 -- localhost.crt localhost.key\`
+
+Report bugs at https://github.com/hannob/hpkp/issues
+EOT
+}
+
+
+# ------------------------------------------------------------------------------
+#                                                                        Program
+# ------------------------------------------------------------------------------
+
+
+# Check exit / return code of every command / function and bail if non-zero.
+set -e
+
+# Parse options.
+while getopts 'hm:r:s' OPTION
+do
+  case "${OPTION}" in
+    h|[?]) usage && exit 0 ;;
+    m) MAX_AGE="${OPTARG}" ;;
+    r) REPORT_URI="${OPTARG}" ;;
+    s) SUBDOMAINS=true ;;
+  esac
+
+  # Remove parsed option from input.
+  shift $(( $OPTIND - 1 ))
 done
 
-[ $c -eq 1 ] && echo "Warning: HKP requires at least 2 keys" >&2
-echo $head
+# Remove possibly passed end of options marker.
+if [ "${1}" = "--" ]
+then
+  shift $(( $OPTIND - 1 ))
+fi
 
+# Ensure we got at least two files.
+if [ $# -lt 2 ]
+then
+  usage >&2
+  exit 1
+fi
+
+# Ensure all non POSIX commands are available.
+for CMD in base64 openssl sha256sum xxd
+do
+  if ! type "${CMD}" >/dev/null 2>&1
+  then
+    printf -- '%s must be installed on this system.\n' "${CMD}" >&2
+    exit 1
+  fi
+done
+
+# Prefix with maximum age of the final header output.
+HEAD="Public-Key-Pins:"
+
+# Used to count the files again, we need at least two files of a known extension.
+C=0
+
+# Go through all files that were passed to the program.
+for FILE in "${@}"
+do
+  # Get absolute path to the file (more robust). Note that readlink and realpath
+  # might not be installed, we use POSIX commands only.
+  #
+  # SEE: http://stackoverflow.com/a/21188136/1251219
+  FILE="$(cd -- "$(dirname -- "${FILE}")" && pwd)/$(basename "${FILE}")"
+
+  # Extract the files extension via substitution of the largest prefix before a
+  # a dot (e.g. `my.file.name.with.extension` results in `extension`).
+  EXTENSION="${FILE##*.}"
+
+  # Go through all known extensions and create the public key.
+  case "${EXTENSION}" in
+    crt) PKEY=$(openssl x509 -pubkey -noout -in "${FILE}") ;;
+    csr) PKEY=$(openssl req -pubkey -noout -in "${FILE}") ;;
+    key) PKEY=$(openssl pkey -in "${FILE}" -pubout) ;;
+    *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
+  esac
+
+  # Create the hash from the public key.
+  PHASH=$(printf -- '%s' "${PKEY}" | grep -v -- PUBLIC | base64 -d | sha256sum | xxd -r -p | base64)
+
+  # Append it to the header line.
+  HEAD="${HEAD} pin-sha256=\"${PHASH}\";"
+
+  # Increase the counter.
+  C=$(( $C + 1 ))
+done
+
+# Check again to ensure that we got at least two files with a known extension.
+if [ $C -lt 2 ]
+then
+  printf -- 'Warning: HKP requires at least two keys.\n' >&2
+  exit 1
+fi
+
+# Note that it actually doesn't matter where each directive is within the header
+# line, but we stick to the examples from the RFC.
+HEAD="${HEAD} max-age=${MAX_AGE};"
+[ ${SUBDOMAINS} = true ] && HEAD="${HEAD} includeSubDomains;"
+[ -n "${REPORT_URI}" ] && HEAD="${HEAD} report-uri=\"${REPORT_URI}\";"
+
+# Remove the last semicolon from the output.
+HEAD=$(printf '%s' "${HEAD}" | head -c-1)
+
+# That's it, the requested header line.
+cat << EOT
+Your HTTP Public Key Pinning (HPKP) header:
+
+${HEAD}
+
+Please refer to the documentation of your web server software to find out how to
+set the HTTP header.
+EOT
+exit 0

@@ -1,0 +1,6 @@
+Your HTTP Public Key Pinning (HPKP) header:
+
+Public-Key-Pins: pin-sha256="aNBQk7eqLgWi3GI5YssW9lmJOXeQnzAwuJ84GCVluA8="; pin-sha256="aNBQk7eqLgWi3GI5YssW9lmJOXeQnzAwuJ84GCVluA8="; max-age=42; includeSubDomains; report-uri="https://localhost/report"
+
+Please refer to the documentation of your web server software to find out how to
+set the HTTP header.
