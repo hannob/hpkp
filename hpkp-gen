@@ -113,7 +113,7 @@ do
   fi
 done
 
-# Prefix with maximum age of the final header output.
+# Header field identifier that prefixes the directives.
 HEAD="Public-Key-Pins:"
 
 # Used to count the files again, we need at least two files of a known extension.
@@ -131,6 +131,11 @@ do
   # Extract the files extension via substitution of the largest prefix before a
   # a dot (e.g. `my.file.name.with.extension` results in `extension`).
   EXTENSION="${FILE##*.}"
+
+  # We might be dealing with a file that has no extension but is still valid,
+  # e.g. if one simply calls the file `crt`, `csr`, and `key`. We can easily
+  # allow that as well by substitution of the largest prefix before a slash.
+  EXTENSION="${FILE##*/}"
 
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
