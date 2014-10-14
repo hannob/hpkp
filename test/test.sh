@@ -43,7 +43,7 @@ ACTUAL="${WD}/actual"
 
 # Be sure to remove the output file upon receiving any signal (including clean
 # exit).
-trap "rm -f -- "${WD}"/output" 0 1 2 3 6 9 14 15
+trap "rm -f -- "${EXPECTED}" "${ACTUAL}"" 0 1 2 3 6 9 14 15
 
 # Execute the command with our test certificate and key.
 sh "$(cd -- "$(dirname -- "${0}")" && pwd)"/../hpkp-gen -m 42 -r 'https://localhost/report' -s -- test/cert.crt test/cert.key > "${ACTUAL}"
