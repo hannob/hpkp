@@ -26,7 +26,7 @@ set -e
 # The certificate and key were generated with the following command:
 #
 #openssl req -x509 -nodes -days 1 -newkey rsa:2048 \
-#  -keyout cert.key -out cert.crt << EOT >/dev/null 2>&1 || test_fail
+#  -keyout cert.key -out cert.crt << EOT
 #XX
 #State
 #City
