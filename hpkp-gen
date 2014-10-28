@@ -131,14 +131,14 @@ do
   # SEE: http://stackoverflow.com/a/21188136/1251219
   FILE="$(cd -- "$(dirname -- "${FILE}")" && pwd)/$(basename "${FILE}")"
 
-  # Extract the files extension via substitution of the largest prefix before a
-  # a dot (e.g. `my.file.name.with.extension` results in `extension`).
-  EXTENSION="${FILE##*.}"
-
   # We might be dealing with a file that has no extension but is still valid,
   # e.g. if one simply calls the file `crt`, `csr`, and `key`. We can easily
   # allow that as well by substitution of the largest prefix before a slash.
   EXTENSION="${FILE##*/}"
+
+  # Extract the files extension via substitution of the largest prefix before a
+  # a dot (e.g. `my.file.name.with.extension` results in `extension`).
+  EXTENSION="${FILE##*.}"
 
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
