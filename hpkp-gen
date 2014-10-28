@@ -104,7 +104,7 @@ then
 fi
 
 # Ensure all non POSIX commands are available.
-for CMD in base64 openssl sha256sum xxd
+for CMD in base64 openssl
 do
   if ! type "${CMD}" >/dev/null 2>&1
   then
@@ -118,6 +118,9 @@ HEAD="Public-Key-Pins:"
 
 # Used to count the files again, we need at least two files of a known extension.
 C=0
+
+# We need a temporary file because OpenSSL wasn't made for pipes.
+TMPFILE=$(mktemp -t hpkp.XXX)
 
 # Go through all files that were passed to the program.
 for FILE in "${@}"
@@ -139,14 +142,14 @@ do
 
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
-    crt) PKEY=$(openssl x509 -pubkey -noout -in "${FILE}") ;;
-    csr) PKEY=$(openssl req -pubkey -noout -in "${FILE}") ;;
-    key) PKEY=$(openssl pkey -in "${FILE}" -pubout) ;;
+    crt) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
 
   # Create the hash from the public key.
-  PHASH=$(printf -- '%s' "${PKEY}" | grep -v -- PUBLIC | base64 -d | sha256sum | xxd -r -p | base64)
+  PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | base64)
 
   # Append it to the header line.
   HEAD="${HEAD} pin-sha256=\"${PHASH}\";"
@@ -154,6 +157,9 @@ do
   # Increase the counter.
   C=$(( $C + 1 ))
 done
+
+# Delete the temporary file.
+rm "${TMPFILE}"
 
 # Check again to ensure that we got at least two files with a known extension.
 if [ $C -lt 2 ]
