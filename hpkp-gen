@@ -37,10 +37,10 @@ MAX_AGE=5184000
 # Whether to include the 'includeSubdomains' directive or not.
 SUBDOMAINS=false
 
-# Output NGINX configuration line?
+# Whether to output nginx 'add_header' configuration option format or not.
 NGINX=false
 
-# Don't be nice?
+# Whether to output additional surrounding text or not.
 QUIET=false
 
 # ------------------------------------------------------------------------------
@@ -60,17 +60,17 @@ Usage: ${0##*/} [OPTION]... [FILES]...
 HKP header generator according to Public Key Pinning Extension for HTTP.
 
 [FILES] should contain at least two files and can be of type:
-  .crt/cert	certificate
-  .csr		certificate request
-  .key		private key.
+  .crt/cert  certificate
+  .csr       certificate request
+  .key       private key
 
 The following options are available:
 
   -m    Specify the maximum age for the pinned key in seconds (default is
         5184000 or 60 days which is the recommended value).
   -h|?  Print this text and exit.
-  -n    Output in the format of a Nginx add_header configuration option
-  -q    Quiet (don't print nice text surrounding output)
+  -n    Output nginx 'add_header' configuration option format.
+  -q    Quiet, output the generated header line only.
 
 Usage example: \`sh hpkp-gen -m5184000 -- localhost.crt localhost.key\`
 
@@ -156,9 +156,7 @@ do
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
     crt|cert) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-
     csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-
     key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
@@ -190,17 +188,24 @@ HEAD="${HEAD} max-age=${MAX_AGE};"
 [ -n "${REPORT_URI}" ] && HEAD="${HEAD} report-uri=\"${REPORT_URI}\";"
 
 # Remove the last semicolon from the output.
-HEAD=$(printf '%s' "${HEAD}" | head -c-1)
+HEAD=$(printf -- '%s' "${HEAD}" | head -c-1)
 
-if [ ${NGINX} = true ];
+# Surround with nginx 'add_header' configuration format if requested.
+if [ "${NGINX}" = true ]
 then
-	HEAD=$(echo "add_header Public-Key-Pins \"$(echo ${HEAD} | sed 's/"/\\"/g')\";")
+  # We have to remove everything before the actual header's content before the
+  # first space with a smallest prefix substitution against the space character
+  # since nginx needs the HTTP header's key separated from the actual header
+  # line.
+  HEAD="add_header Public-Key-Pins '"${HEAD#* }"';"
 fi
 
-if [ ${QUIET} = false ];
+# That's it, the requested header line.
+if [ "${QUIET}" = true ]
 then
-	# That's it, the requested header line.
-	cat << EOT
+  printf -- '%s' "${HEAD}"
+else
+  cat << EOT
 Your HTTP Public Key Pinning (HPKP) header:
 
 ${HEAD}
@@ -208,7 +213,6 @@ ${HEAD}
 Please refer to the documentation of your web server software to find out how to
 set the HTTP header.
 EOT
-else
-	echo ${HEAD}
 fi
+
 exit 0
