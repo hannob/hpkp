@@ -37,6 +37,11 @@ MAX_AGE=5184000
 # Whether to include the 'includeSubdomains' directive or not.
 SUBDOMAINS=false
 
+# Output NGINX configuration line?
+NGINX=false
+
+# Don't be nice?
+QUIET=false
 
 # ------------------------------------------------------------------------------
 #                                                                      Functions
@@ -54,12 +59,18 @@ usage()
 Usage: ${0##*/} [OPTION]... [FILES]...
 HKP header generator according to Public Key Pinning Extension for HTTP.
 
-[FILES] should contain at least two files and can be of type .crt (certificate),
-.csr (certificate request), or .key (private key).
+[FILES] should contain at least two files and can be of type:
+  .crt/cert	certificate
+  .csr		certificate request
+  .key		private key.
+
+The following options are available:
 
   -m    Specify the maximum age for the pinned key in seconds (default is
         5184000 or 60 days which is the recommended value).
   -h|?  Print this text and exit.
+  -n    Output in the format of a Nginx add_header configuration option
+  -q    Quiet (don't print nice text surrounding output)
 
 Usage example: \`sh hpkp-gen -m5184000 -- localhost.crt localhost.key\`
 
@@ -77,13 +88,15 @@ EOT
 set -e
 
 # Parse options.
-while getopts 'hm:r:s' OPTION
+while getopts 'hm:nqr:s' OPTION
 do
   case "${OPTION}" in
     h|[?]) usage && exit 0 ;;
     m) MAX_AGE="${OPTARG}" ;;
+    n) NGINX=true ;;
     r) REPORT_URI="${OPTARG}" ;;
     s) SUBDOMAINS=true ;;
+    q) QUIET=true ;;
   esac
 
   # Remove parsed option from input.
@@ -142,8 +155,10 @@ do
 
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
-    crt) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    crt|cert) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+
     csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+
     key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
@@ -177,8 +192,15 @@ HEAD="${HEAD} max-age=${MAX_AGE};"
 # Remove the last semicolon from the output.
 HEAD=$(printf '%s' "${HEAD}" | head -c-1)
 
-# That's it, the requested header line.
-cat << EOT
+if [ ${NGINX} = true ];
+then
+	HEAD=$(echo "add_header Public-Key-Pins \"$(echo ${HEAD} | sed 's/"/\\"/g')\";")
+fi
+
+if [ ${QUIET} = false ];
+then
+	# That's it, the requested header line.
+	cat << EOT
 Your HTTP Public Key Pinning (HPKP) header:
 
 ${HEAD}
@@ -186,4 +208,7 @@ ${HEAD}
 Please refer to the documentation of your web server software to find out how to
 set the HTTP header.
 EOT
+else
+	echo ${HEAD}
+fi
 exit 0
