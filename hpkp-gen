@@ -161,7 +161,7 @@ do
   esac
 
   # Create the public key
-  openssl "${OPENSSL_ARGS}" -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
+  openssl ${OPENSSL_ARGS} -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
 
   # Create the hash from the public key.
   PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | openssl enc -base64)
