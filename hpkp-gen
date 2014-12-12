@@ -71,6 +71,8 @@ The following options are available:
   -h|?  Print this text and exit.
   -n    Output nginx 'add_header' configuration option format.
   -q    Quiet, output the generated header line only.
+  -r    Specify the report URI.
+  -s    Indicate that subdomains should be included.
 
 Usage example: \`sh hpkp-gen -m5184000 -- localhost.crt localhost.key\`
 
@@ -200,7 +202,7 @@ fi
 # That's it, the requested header line.
 if [ "${QUIET}" = true ]
 then
-  printf -- '%s' "${HEAD}"
+  printf -- '%s\n' "${HEAD}"
 else
   cat << EOT
 Your HTTP Public Key Pinning (HPKP) header:
