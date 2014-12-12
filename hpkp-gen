@@ -106,7 +106,7 @@ do
 done
 
 # Remove possibly passed end of options marker.
-if [ "${1}" = "--" ]
+if [ "${1}" = '--' ]
 then
   shift $(( $OPTIND - 1 ))
 fi
@@ -119,14 +119,14 @@ then
 fi
 
 # Ensure all non POSIX commands are available.
-if ! type "openssl" >/dev/null 2>&1
+if ! type 'openssl' >/dev/null 2>&1
 then
   printf -- '%s must be installed on this system.\n' "${CMD}" >&2
   exit 1
 fi
 
 # Header field identifier that prefixes the directives.
-HEAD="Public-Key-Pins:"
+HEAD='Public-Key-Pins:'
 
 # Used to count the files again, we need at least two files of a known extension.
 C=0
@@ -161,7 +161,7 @@ do
   esac
 
   # Create the public key
-  openssl ${OPENSSL_ARGS} -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
+  openssl "${OPENSSL_ARGS}" -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
 
   # Create the hash from the public key.
   PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | openssl enc -base64)
@@ -186,7 +186,7 @@ fi
 # Note that it actually doesn't matter where each directive is within the header
 # line, but we stick to the examples from the RFC.
 HEAD="${HEAD} max-age=${MAX_AGE};"
-[ ${SUBDOMAINS} = true ] && HEAD="${HEAD} includeSubDomains;"
+[ "${SUBDOMAINS}" = true ] && HEAD="${HEAD} includeSubDomains;"
 [ -n "${REPORT_URI}" ] && HEAD="${HEAD} report-uri=\"${REPORT_URI}\";"
 
 # Remove the last semicolon from the output.
