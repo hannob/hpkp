@@ -7,7 +7,7 @@
 #
 # To the extent possible under law, the author(s) have dedicated all copyright
 # and related and neighboring rights to this software to the public domain
-# worldwide. This software is distributed without any warranty. 
+# worldwide. This software is distributed without any warranty.
 #
 # You should have received a copy of the CC0 Public Domain Dedication along with
 # this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
@@ -20,7 +20,7 @@
 # AUTHOR:     Richard Fussenegger <richard@fussenegger.info>
 # COPYRIGHT:  Copyright (c) 2014 Hanno Böck
 # LICENSE:    http://creativecommons.org/publicdomain/zero/1.0/
-# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-21
 # ------------------------------------------------------------------------------
 
 
@@ -60,9 +60,9 @@ Usage: ${0##*/} [OPTION]... [FILES]...
 HKP header generator according to Public Key Pinning Extension for HTTP.
 
 [FILES] should contain at least two files and can be of type:
-  .crt/cert  certificate
-  .csr       certificate request
-  .key       private key
+  .crt/cert/pem  certificate
+  .csr           certificate request
+  .key           private key
 
 The following options are available:
 
@@ -71,6 +71,8 @@ The following options are available:
   -h|?  Print this text and exit.
   -n    Output nginx 'add_header' configuration option format.
   -q    Quiet, output the generated header line only.
+  -r    Specify the report URI.
+  -s    Indicate that subdomains should be included.
 
 Usage example: \`sh hpkp-gen -m5184000 -- localhost.crt localhost.key\`
 
@@ -117,14 +119,11 @@ then
 fi
 
 # Ensure all non POSIX commands are available.
-for CMD in base64 openssl
-do
-  if ! type "${CMD}" >/dev/null 2>&1
-  then
-    printf -- '%s must be installed on this system.\n' "${CMD}" >&2
-    exit 1
-  fi
-done
+if ! type "openssl" >/dev/null 2>&1
+then
+  printf -- '%s must be installed on this system.\n' "${CMD}" >&2
+  exit 1
+fi
 
 # Header field identifier that prefixes the directives.
 HEAD="Public-Key-Pins:"
@@ -153,16 +152,19 @@ do
   # a dot (e.g. `my.file.name.with.extension` results in `extension`).
   EXTENSION="${FILE##*.}"
 
-  # Go through all known extensions and create the public key.
+  # Go through all known extensions and find the appropriate args to pass to openssl
   case "${EXTENSION}" in
-    crt|cert) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-    csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-    key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    crt|cert|pem) OPENSSL_ARGS="x509 -pubkey -noout" ;;
+    csr)          OPENSSL_ARGS="req -pubkey -noout" ;;
+    key)          OPENSSL_ARGS="pkey -pubout" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
 
+  # Create the public key
+  openssl ${OPENSSL_ARGS} -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
+
   # Create the hash from the public key.
-  PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | base64)
+  PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | openssl enc -base64)
 
   # Append it to the header line.
   HEAD="${HEAD} pin-sha256=\"${PHASH}\";"
@@ -203,7 +205,7 @@ fi
 # That's it, the requested header line.
 if [ "${QUIET}" = true ]
 then
-  printf -- '%s' "${HEAD}"
+  printf -- '%s\n' "${HEAD}"
 else
   cat << EOT
 Your HTTP Public Key Pinning (HPKP) header:
