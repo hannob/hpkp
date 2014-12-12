@@ -60,9 +60,9 @@ Usage: ${0##*/} [OPTION]... [FILES]...
 HKP header generator according to Public Key Pinning Extension for HTTP.
 
 [FILES] should contain at least two files and can be of type:
-  .crt/cert  certificate
-  .csr       certificate request
-  .key       private key
+  .crt/cert/pem  certificate
+  .csr           certificate request
+  .key           private key
 
 The following options are available:
 
@@ -154,7 +154,7 @@ do
 
   # Go through all known extensions and create the public key.
   case "${EXTENSION}" in
-    crt|cert) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    crt|cert|pem) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
