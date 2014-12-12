@@ -152,13 +152,16 @@ do
   # a dot (e.g. `my.file.name.with.extension` results in `extension`).
   EXTENSION="${FILE##*.}"
 
-  # Go through all known extensions and create the public key.
+  # Go through all known extensions and find the appropriate args to pass to openssl
   case "${EXTENSION}" in
-    crt|cert|pem) openssl x509 -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-    csr) openssl req -pubkey -noout -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
-    key) openssl pkey -in "${FILE}" -pubout | openssl asn1parse -inform pem -noout -out "${TMPFILE}" ;;
+    crt|cert|pem) OPENSSL_ARGS="x509 -pubkey -noout" ;;
+    csr)          OPENSSL_ARGS="req -pubkey -noout" ;;
+    key)          OPENSSL_ARGS="pkey -pubout" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
+
+  # Create the public key
+  openssl ${OPENSSL_ARGS} -in "${FILE}" | openssl asn1parse -inform pem -noout -out "${TMPFILE}"
 
   # Create the hash from the public key.
   PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | openssl enc -base64)
