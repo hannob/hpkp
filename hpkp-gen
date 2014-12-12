@@ -7,7 +7,7 @@
 #
 # To the extent possible under law, the author(s) have dedicated all copyright
 # and related and neighboring rights to this software to the public domain
-# worldwide. This software is distributed without any warranty. 
+# worldwide. This software is distributed without any warranty.
 #
 # You should have received a copy of the CC0 Public Domain Dedication along with
 # this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
@@ -20,7 +20,7 @@
 # AUTHOR:     Richard Fussenegger <richard@fussenegger.info>
 # COPYRIGHT:  Copyright (c) 2014 Hanno Böck
 # LICENSE:    http://creativecommons.org/publicdomain/zero/1.0/
-# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-21
 # ------------------------------------------------------------------------------
 
 
@@ -117,14 +117,11 @@ then
 fi
 
 # Ensure all non POSIX commands are available.
-for CMD in base64 openssl
-do
-  if ! type "${CMD}" >/dev/null 2>&1
-  then
-    printf -- '%s must be installed on this system.\n' "${CMD}" >&2
-    exit 1
-  fi
-done
+if ! type "openssl" >/dev/null 2>&1
+then
+  printf -- '%s must be installed on this system.\n' "${CMD}" >&2
+  exit 1
+fi
 
 # Header field identifier that prefixes the directives.
 HEAD="Public-Key-Pins:"
@@ -162,7 +159,7 @@ do
   esac
 
   # Create the hash from the public key.
-  PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | base64)
+  PHASH=$(openssl dgst -sha256 -binary "${TMPFILE}" | openssl enc -base64)
 
   # Append it to the header line.
   HEAD="${HEAD} pin-sha256=\"${PHASH}\";"

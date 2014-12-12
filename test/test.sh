@@ -10,14 +10,14 @@
 # worldwide. This software is distributed without any warranty. 
 #
 # You should have received a copy of the CC0 Public Domain Dedication along with
-# this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>. 
+# this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # AUTHOR:     Richard Fussenegger <richard@fussenegger.info>
 # COPYRIGHT:  Copyright (c) 2014 Hanno Böck
 # LICENSE:    http://creativecommons.org/publicdomain/zero/1.0/
-# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20
+# LINK:       https://tools.ietf.org/html/draft-ietf-websec-key-pinning-21
 # ------------------------------------------------------------------------------
 
 # Check exit / return code of every command / function and bail if non-zero.
