@@ -33,7 +33,7 @@ for f in "$@"; do
 		exit -1
 	fi
 	let c+=1
-	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|sha256sum |xxd -r -p|base64`
+	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|openssl dgst -sha256 -binary|base64`
 	head="${head}pin-sha256=\"$phash\";"
 done
 
