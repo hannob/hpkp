@@ -158,7 +158,7 @@ do
   case "${EXTENSION}" in
     crt|cert|pem) OPENSSL_ARGS="x509 -pubkey -noout" ;;
     csr)          OPENSSL_ARGS="req -pubkey -noout" ;;
-    key)          OPENSSL_ARGS="pkey -pubout" ;;
+    key|u)        OPENSSL_ARGS="pkey -pubout" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
 
