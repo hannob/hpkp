@@ -209,7 +209,7 @@ if [ "${APACHE}" = true ]
 then
   # based on the nginx code, here we replace the quotes to match apache rules 
   HEAD=`echo "$HEAD" | sed -r 's/"/\\\"/g'`
-  HEAD="Header always set Public-Key-Pins \""${HEAD#* }"\";"
+  HEAD="Header always set Public-Key-Pins \""${HEAD#* }"\""
 fi
 
 # That's it, the requested header line.
