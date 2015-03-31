@@ -70,6 +70,7 @@ The following options are available:
         5184000 or 60 days which is the recommended value).
   -h|?  Print this text and exit.
   -n    Output nginx 'add_header' configuration option format.
+  -a    Output Apache 'Header' configuration option format.
   -q    Quiet, output the generated header line only.
   -r    Specify the report URI.
   -s    Indicate that subdomains should be included.
@@ -90,12 +91,13 @@ EOT
 set -e
 
 # Parse options.
-while getopts 'hm:nqr:s' OPTION
+while getopts 'hm:naqr:s' OPTION
 do
   case "${OPTION}" in
     h|[?]) usage && exit 0 ;;
     m) MAX_AGE="${OPTARG}" ;;
     n) NGINX=true ;;
+    a) APACHE=true ;;
     r) REPORT_URI="${OPTARG}" ;;
     s) SUBDOMAINS=true ;;
     q) QUIET=true ;;
@@ -156,7 +158,7 @@ do
   case "${EXTENSION}" in
     crt|cert|pem) OPENSSL_ARGS="x509 -pubkey -noout" ;;
     csr)          OPENSSL_ARGS="req -pubkey -noout" ;;
-    key)          OPENSSL_ARGS="pkey -pubout" ;;
+    key|u)        OPENSSL_ARGS="pkey -pubout" ;;
     *) printf 'Unknown file type %s.\n' "${EXTENSION}" >&2 && exit 1 ;;
   esac
 
@@ -200,6 +202,14 @@ then
   # since nginx needs the HTTP header's key separated from the actual header
   # line.
   HEAD="add_header Public-Key-Pins '"${HEAD#* }"';"
+fi
+
+# Surround with Apache 'set Header' configuration format if requested.
+if [ "${APACHE}" = true ]
+then
+  # based on the nginx code, here we replace the quotes to match apache rules 
+  HEAD=`echo "$HEAD" | sed -r 's/"/\\\"/g'`
+  HEAD="Header always set Public-Key-Pins \""${HEAD#* }"\""
 fi
 
 # That's it, the requested header line.
