@@ -20,4 +20,4 @@ and certificate requests (.csr).
 More Info
 =========
 
-* [Public Key Pinning Extension for HTTP draft-ietf-websec-key-pinning-21](https://tools.ietf.org/html/draft-ietf-websec-key-pinning-20)
+* [Public Key Pinning Extension for HTTP - RFC 7469](https://tools.ietf.org/html/rfc7469)
