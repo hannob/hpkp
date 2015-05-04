@@ -57,7 +57,7 @@ usage()
 {
   cat << EOT
 Usage: ${0##*/} [OPTION]... [FILES]...
-HKP header generator according to Public Key Pinning Extension for HTTP.
+HKP header generator according to Public Key Pinning Extension for HTTP (RFC7469).
 
 [FILES] should contain at least two files and can be of type:
   .crt/cert/pem  certificate
@@ -207,7 +207,7 @@ fi
 # Surround with Apache 'set Header' configuration format if requested.
 if [ "${APACHE}" = true ]
 then
-  # based on the nginx code, here we replace the quotes to match apache rules 
+  # based on the nginx code, here we replace the quotes to match apache rules
   HEAD=`echo "$HEAD" | sed -r 's/"/\\\"/g'`
   HEAD="Header always set Public-Key-Pins \""${HEAD#* }"\""
 fi

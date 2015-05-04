@@ -28,4 +28,4 @@ sh hpkp/hpkp-gen -s -- cert.crt cert.key
 > this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 ## References
-1. [Public Key Pinning Extension for HTTP](https://datatracker.ietf.org/doc/draft-ietf-websec-key-pinning/)
+1. [Public Key Pinning Extension for HTTP - RFC7469](https://tools.ietf.org/html/rfc7469)
