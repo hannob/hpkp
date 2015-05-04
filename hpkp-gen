@@ -23,18 +23,18 @@ head="Public-Key-Pins: max-age=5184000; "
 c=0
 for f in "$@"; do
 	if [ "${f: -4}" = ".crt" ]; then
-		pkey=`openssl x509 -pubkey -noout -in $f`
+		pkey=$(openssl x509 -pubkey -noout -in "$f")
 	elif [ "${f: -4}" = ".csr" ]; then
-		pkey=`openssl req -pubkey -noout -in $f`
+		pkey=$(openssl req -pubkey -noout -in "$f")
 	elif [ "${f: -4}" = ".key" ]; then
-		pkey=`openssl pkey -in $f -pubout`
+		pkey=$(openssl pkey -in "$f" -pubout)
 	else
 		echo "$f is not a valid file format"
 		exit -1
 	fi
 	let c+=1
-	phash=`echo "$pkey"|grep -v PUBLIC|base64 -d|openssl dgst -sha256 -binary|base64`
-	head="${head}pin-sha256=\"$phash\";"
+	phash=$(echo -n "$pkey"|grep -v PUBLIC|base64 -d|openssl dgst -sha256 -binary|base64|tr -d "\r\n")
+	head="${head}pin-sha256=\"${phash}\";"
 done
 
 [ $c -eq 1 ] && echo "Warning: HKP requires at least 2 keys" >&2
