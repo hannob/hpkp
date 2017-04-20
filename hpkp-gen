@@ -28,6 +28,10 @@ for f in "$@"; do
 		pkey=`openssl req -pubkey -noout -in $f`
 	elif [ "${f: -4}" = ".key" ]; then
 		pkey=`openssl pkey -in $f -pubout`
+	elif [ "${f: -4}" = ".pem" ]; then
+		pkey=`openssl x509 -noout -in $f -pubkey | \
+			openssl asn1parse -noout -inform pem -out public.key;
+			openssl dgst -sha256 -binary public.key | openssl enc -base64`
 	else
 		echo "$f is not a valid file format"
 		exit -1
